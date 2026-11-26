@@ -28,8 +28,8 @@ jobs:
               linux/amd64 linux/arm64 \
               darwin/amd64 darwin/arm64 \
               windows/amd64 windows/arm64; do
-            GOOS=${target%/*}
-            GOARCH=${target#*/}
+            export GOOS=${target%/*}
+            export GOARCH=${target#*/}
             name="gdrive-${GOOS}-${GOARCH}"
             if [ "$GOOS" = "windows" ]; then
               go build -trimpath -ldflags "-w -s" -o "dist/${name}.exe" .
