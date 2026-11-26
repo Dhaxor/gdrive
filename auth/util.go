@@ -10,7 +10,7 @@ func mkdir(path string) error {
 	if fileExists(dir) {
 		return nil
 	}
-	return os.Mkdir(dir, 0700)
+	return os.MkdirAll(dir, 0700)
 }
 
 func fileExists(path string) bool {

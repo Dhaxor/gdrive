@@ -44,8 +44,7 @@ type RevokePermissionArgs struct {
 func (self *Drive) RevokePermission(args RevokePermissionArgs) error {
 	err := self.service.Permissions.Delete(args.FileId, args.PermissionId).Do()
 	if err != nil {
-		fmt.Errorf("Failed to revoke permission: %s", err)
-		return err
+		return fmt.Errorf("Failed to revoke permission: %s", err)
 	}
 
 	fmt.Fprintf(args.Out, "Permission revoked\n")
@@ -60,8 +59,7 @@ type ListPermissionsArgs struct {
 func (self *Drive) ListPermissions(args ListPermissionsArgs) error {
 	permList, err := self.service.Permissions.List(args.FileId).Fields("permissions(id,role,type,domain,emailAddress,allowFileDiscovery)").Do()
 	if err != nil {
-		fmt.Errorf("Failed to list permissions: %s", err)
-		return err
+		return fmt.Errorf("Failed to list permissions: %s", err)
 	}
 
 	printPermissions(printPermissionsArgs{

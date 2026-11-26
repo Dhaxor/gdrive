@@ -1,7 +1,7 @@
 package drive
 
 import (
-	"golang.org/x/net/context"
+	"context"
 	"io"
 	"sync"
 	"time"
@@ -12,26 +12,25 @@ const TimeoutTimerInterval = time.Second * 10
 type timeoutReaderWrapper func(io.Reader) io.Reader
 
 func getTimeoutReaderWrapperContext(timeout time.Duration) (timeoutReaderWrapper, context.Context) {
+	// Return no-op wrapper if timeout is 0
+	if timeout == 0 {
+		return func(r io.Reader) io.Reader { return r }, context.Background()
+	}
+
 	ctx, cancel := context.WithCancel(context.TODO())
 	wrapper := func(r io.Reader) io.Reader {
-		// Return untouched reader if timeout is 0
-		if timeout == 0 {
-			return r
-		}
-
 		return getTimeoutReader(r, cancel, timeout)
 	}
 	return wrapper, ctx
 }
 
 func getTimeoutReaderContext(r io.Reader, timeout time.Duration) (io.Reader, context.Context) {
-	ctx, cancel := context.WithCancel(context.TODO())
-
 	// Return untouched reader if timeout is 0
 	if timeout == 0 {
-		return r, ctx
+		return r, context.Background()
 	}
 
+	ctx, cancel := context.WithCancel(context.TODO())
 	return getTimeoutReader(r, cancel, timeout), ctx
 }
 

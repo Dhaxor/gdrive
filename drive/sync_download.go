@@ -324,5 +324,5 @@ func ensureNoLocalModifications(files []*changedFile) error {
 
 	buffer := bytes.NewBufferString("")
 	formatConflicts(conflicts, buffer)
-	return fmt.Errorf(buffer.String())
+	return fmt.Errorf("%s", buffer.String())
 }

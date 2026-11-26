@@ -1,56 +1,102 @@
-## IMPORTANT
-This repository is not maintained anymore. [Gdrive 3](https://github.com/glotlabs/gdrive) is its successor.
+# gdrive
+
+**A community revival of [gdrive](https://github.com/prasmussen/gdrive), the command-line Google Drive client.**
+
+The original project by Petter Rasmussen was archived in April 2023 with the
+note *"This repository is not maintained anymore"*. Its designated successor,
+the Rust-based [gdrive 3](https://github.com/glotlabs/gdrive), has itself been
+inactive since August 2024. This repo continues the original Go implementation
+so it works with Google's current APIs.
+
+## What is new in the revival
+
+- **Loopback OAuth flow.** Google shut down the out-of-band ("verification
+  code") flow this tool relied on in early 2023, which left `gdrive` unable to
+  authenticate. Authorization now happens automatically: `gdrive` starts a
+  local callback server and the browser redirects back to it. No more
+  copy-pasting verification codes.
+- **Current OAuth endpoints** (`google.Endpoint`) instead of the retired
+  `https://accounts.google.com/o/oauth2/token` URL.
+- **Go modules.** The GOPATH-era `Godeps`/`vendor` layout is gone; dependencies
+  are up to date (`google.golang.org/api` v0.290.0, `golang.org/x/oauth2`
+  v0.36.0) and the tool builds with Go 1.25+.
+- **Bring your own OAuth client.** Set the `GDRIVE_CLIENT_ID` and
+  `GDRIVE_CLIENT_SECRET` environment variables to use your own Google Cloud
+  credentials. The original client remains the default.
+- **Bug fixes.** Token files can now be saved into nested config directories,
+  permission and revision errors no longer lose their context, a context leak
+  on the no-timeout path is fixed, and the code is `go vet` clean.
+- **CI and tests.** Builds and tests run on Linux, macOS and Windows; every
+  release publishes static binaries for all major platforms.
+
+## Install
+
+Download a binary from the [latest release](https://github.com/Dhaxor/gdrive/releases/latest):
+
+| Platform | Asset |
+| -------- | ----- |
+| Linux    | `gdrive-linux-amd64.tar.gz`, `gdrive-linux-arm64.tar.gz` |
+| macOS    | `gdrive-darwin-amd64.tar.gz`, `gdrive-darwin-arm64.tar.gz` |
+| Windows  | `gdrive-windows-amd64.zip`, `gdrive-windows-arm64.zip` |
+
+or install with Go (Go 1.25 or later):
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+go install github.com/Dhaxor/gdrive@latest
 ```
 
-## Prerequisites
-None, binaries are statically linked.
-If you want to compile from source you need the [go toolchain](http://golang.org/doc/install).
-Version 1.5 or higher.
+or build from source:
 
-## Installation
-### With [Homebrew](http://brew.sh) on Mac
 ```
-brew install gdrive
+git clone https://github.com/Dhaxor/gdrive
+cd gdrive
+go build
 ```
-### Other
-Download `gdrive` from one of the [links in the latest release](https://github.com/prasmussen/gdrive/releases).
-The first time gdrive is launched (i.e. run `gdrive about` in your
-terminal not just `gdrive`), you will be prompted for a verification code.
-The code is obtained by following the printed url and authenticating with the
-google account for the drive you want access to. This will create a token file
-inside the .gdrive folder in your home directory. Note that anyone with access
-to this file will also have access to your google drive.
-If you want to manage multiple drives you can use the global `--config` flag
-or set the environment variable `GDRIVE_CONFIG_DIR`.
-Example: `GDRIVE_CONFIG_DIR="/home/user/.gdrive-secondary" gdrive list`
-You will be prompted for a new verification code if the folder does not exist.
 
-## Compile from source
-```bash
-go get github.com/prasmussen/gdrive
+## Authorization
+
+The first time gdrive is launched (i.e. run `gdrive about` in your terminal,
+not just `gdrive`), it runs an authorization flow:
+
+1. gdrive prints a URL and starts a local callback server
+2. Open the URL in a browser and authenticate with the Google account whose
+   Drive you want to access
+3. The browser redirects back to the local server and authorization completes
+   automatically
+
+The resulting credentials are stored in a token file inside the `.gdrive`
+folder in your home directory. Note that anyone with access to this file also
+has access to your Google Drive. If you want to manage multiple drives you can
+use the global `--config` flag or set the environment variable
+`GDRIVE_CONFIG_DIR`. Example:
+`GDRIVE_CONFIG_DIR="/home/user/.gdrive-secondary" gdrive list`
+
+You will be prompted for a new authorization if the folder does not exist.
+
+### Using your own OAuth client
+
+The default OAuth client, inherited from the original project, has not been
+verified by Google, so you may see an "unverified app" warning during
+authorization. To use your own client instead, create an OAuth client ID of
+type "Desktop app" in the
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+enable the [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com)
+for that project, and run gdrive with:
+
 ```
-The gdrive binary should now be available at `$GOPATH/bin/gdrive`
+GDRIVE_CLIENT_ID=<your-client-id> GDRIVE_CLIENT_SECRET=<your-client-secret> gdrive about
+```
 
+## Credits
 
-### Syncing
+- [prasmussen/gdrive](https://github.com/prasmussen/gdrive) - the original
+  project, MIT licensed. All of its history is preserved in this repo.
+- [glotlabs/gdrive](https://github.com/glotlabs/gdrive) - gdrive 3, the Rust
+  rewrite that served as successor from 2021 to 2024.
+
+This revival keeps the original MIT license. See [LICENSE](LICENSE).
+
+## Syncing
 Gdrive supports basic syncing. It only syncs one way at the time and works
 more like rsync than e.g. dropbox. Files that are synced to google drive
 are tagged with an appProperty so that the files on drive can be traversed
@@ -62,7 +108,7 @@ syncing many files. Currently only one file is uploaded at the time,
 the speed can be improved in the future by uploading several files concurrently.
 To learn more see usage and the examples below.
 
-### Service Account
+## Service Account
 For server to server communication, where user interaction is not a viable option, 
 is it possible to use a service account, as described in this [Google document](https://developers.google.com/identity/protocols/OAuth2ServiceAccount).
 If you want to use a service account, instead of being interactively prompted for
@@ -70,7 +116,7 @@ authentication, you need to use the `--service-account <serviceAccountCredential
 global option, where `serviceAccountCredentials` is a file in JSON format obtained
 through the Google API Console, and its location is relative to the config dir. 
 
-#### .gdriveignore
+### .gdriveignore
 Placing a .gdriveignore in the root of your sync directory can be used to
 skip certain files from being synced. .gdriveignore follows the same
 rules as [.gitignore](https://git-scm.com/docs/gitignore), except that gdrive only reads the .gdriveignore file in the root of the sync directory, not ones in any subdirectories.

@@ -53,7 +53,7 @@ func (self *Drive) UploadSync(args UploadSyncArgs) error {
 
 	// Ensure that there is enough free space on drive
 	if ok, msg := self.checkRemoteFreeSpace(missingFiles, changedFiles); !ok {
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 
 	// Ensure that we don't overwrite any remote changes
@@ -391,7 +391,7 @@ func (self *Drive) dirIsEmpty(id string) (bool, error) {
 	query := fmt.Sprintf("'%s' in parents", id)
 	fileList, err := self.service.Files.List().Q(query).Do()
 	if err != nil {
-		return false, fmt.Errorf("Empty dir check failed: ", err)
+		return false, fmt.Errorf("Empty dir check failed: %s", err)
 	}
 
 	return len(fileList.Files) == 0, nil
@@ -446,7 +446,7 @@ func ensureNoRemoteModifications(files []*changedFile) error {
 
 	buffer := bytes.NewBufferString("")
 	formatConflicts(conflicts, buffer)
-	return fmt.Errorf(buffer.String())
+	return fmt.Errorf("%s", buffer.String())
 }
 
 func (self *Drive) checkRemoteFreeSpace(missingFiles []*LocalFile, changedFiles []*changedFile) (bool, string) {

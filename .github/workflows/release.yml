@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          for target in \
+              linux/amd64 linux/arm64 \
+              darwin/amd64 darwin/arm64 \
+              windows/amd64 windows/arm64; do
+            GOOS=${target%/*}
+            GOARCH=${target#*/}
+            name="gdrive-${GOOS}-${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              go build -trimpath -ldflags "-w -s" -o "dist/${name}.exe" .
+              (cd dist && zip -q "${name}.zip" "${name}.exe" && rm "${name}.exe")
+            else
+              go build -trimpath -ldflags "-w -s" -o "dist/${name}" .
+              tar -czf "dist/${name}.tar.gz" -C dist "${name}"
+              rm "dist/${name}"
+            fi
+          done
+          ls -l dist/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

@@ -1,21 +1,38 @@
 package main
 
 import (
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/prasmussen/gdrive/auth"
-	"github.com/prasmussen/gdrive/cli"
-	"github.com/prasmussen/gdrive/drive"
+	"github.com/Dhaxor/gdrive/auth"
+	"github.com/Dhaxor/gdrive/cli"
+	"github.com/Dhaxor/gdrive/drive"
 )
 
-const ClientId = "367116221053-7n0vf5akeru7on6o2fjinrecpdoe99eg.apps.googleusercontent.com"
-const ClientSecret = "1qsNodXNaWq1mQuBjUjmvhoO"
+// Default OAuth client of the original gdrive project. The OAuth consent
+// screen of this client is not verified by Google, so you may see an
+// "unverified app" warning during authorization. To use your own client,
+// set the GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET environment variables.
+const DefaultClientId = "367116221053-7n0vf5akeru7on6o2fjinrecpdoe99eg.apps.googleusercontent.com"
+const DefaultClientSecret = "1qsNodXNaWq1mQuBjmvhoO"
+
+func oauthClientId() string {
+	if id := os.Getenv("GDRIVE_CLIENT_ID"); id != "" {
+		return id
+	}
+	return DefaultClientId
+}
+
+func oauthClientSecret() string {
+	if secret := os.Getenv("GDRIVE_CLIENT_SECRET"); secret != "" {
+		return secret
+	}
+	return DefaultClientSecret
+}
+
 const TokenFilename = "token_v2.json"
 const DefaultCacheFileName = "file_cache.json"
 
@@ -346,11 +363,11 @@ func getOauthClient(args cli.Arguments) (*http.Client, error) {
 	}
 
 	if args.String("refreshToken") != "" {
-		return auth.NewRefreshTokenClient(ClientId, ClientSecret, args.String("refreshToken")), nil
+		return auth.NewRefreshTokenClient(oauthClientId(), oauthClientSecret(), args.String("refreshToken")), nil
 	}
 
 	if args.String("accessToken") != "" {
-		return auth.NewAccessTokenClient(ClientId, ClientSecret, args.String("accessToken")), nil
+		return auth.NewAccessTokenClient(oauthClientId(), oauthClientSecret(), args.String("accessToken")), nil
 	}
 
 	configDir := getConfigDir(args)
@@ -365,7 +382,7 @@ func getOauthClient(args cli.Arguments) (*http.Client, error) {
 	}
 
 	tokenPath := ConfigFilePath(configDir, TokenFilename)
-	return auth.NewFileSourceClient(ClientId, ClientSecret, tokenPath, authCodePrompt)
+	return auth.NewFileSourceClient(oauthClientId(), oauthClientSecret(), tokenPath)
 }
 
 func getConfigDir(args cli.Arguments) string {
@@ -390,24 +407,9 @@ func newDrive(args cli.Arguments) *drive.Drive {
 	return client
 }
 
-func authCodePrompt(url string) func() string {
-	return func() string {
-		fmt.Println("Authentication needed")
-		fmt.Println("Go to the following url in your browser:")
-		fmt.Printf("%s\n\n", url)
-		fmt.Print("Enter verification code: ")
-
-		var code string
-		if _, err := fmt.Scan(&code); err != nil {
-			fmt.Printf("Failed reading code: %s", err.Error())
-		}
-		return code
-	}
-}
-
 func progressWriter(discard bool) io.Writer {
 	if discard {
-		return ioutil.Discard
+		return io.Discard
 	}
 	return os.Stderr
 }

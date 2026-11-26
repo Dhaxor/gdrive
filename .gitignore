@@ -8,3 +8,7 @@ Session.vim
 .netrwhist
 gdrive
 gdrive.sh
+
+# Revival build artifacts
+gdrive.exe
+dist/
