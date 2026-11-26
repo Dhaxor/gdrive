@@ -20,16 +20,16 @@ func newTestCallbackServer(t *testing.T) *callbackServer {
 }
 
 // getCallback performs a request against the callback server as a
-// browser would do when redirected back after authorization
+// browser would do when redirected back after authorization.
+// Request errors are ignored on purpose: on the error paths the
+// callback server is closed as soon as the failure is signaled, which
+// can cut the response short. Real failures are caught by the wait
+// call in each test instead.
 func getCallback(t *testing.T, cs *callbackServer, params url.Values) {
 	t.Helper()
 
-	// Note: t.Error (not t.Fatal) since this runs in a separate
-	// goroutine; if the request fails the wait below times out
-	// and fails the test on the main goroutine
 	res, err := http.Get(cs.redirectURL() + "?" + params.Encode())
 	if err != nil {
-		t.Errorf("callback request failed: %s", err)
 		return
 	}
 	res.Body.Close()
